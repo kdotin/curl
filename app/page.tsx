@@ -508,6 +508,16 @@ export default function Home() {
             >
               Krishna Moorthy
             </a>
+            {' '} • {' '}
+            <a 
+              href="https://github.com/kdotin/curl" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:no-underline transition-all duration-200"
+              style={{ color: colors.primary }}
+            >
+              Open Source on Github
+            </a>
           </p>
         </div>
       </div>
@@ -632,6 +642,16 @@ export default function Home() {
               style={{ color: colors.primary }}
             >
               Krishna Moorthy
+            </a>
+            {' '} • {' '}
+            <a 
+              href="https://github.com/kdotin/curl" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:no-underline transition-all duration-200"
+              style={{ color: colors.primary }}
+            >
+              Open Source on Github
             </a>
           </p>
         </div>
