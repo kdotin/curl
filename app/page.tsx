@@ -406,16 +406,16 @@ export default function Home() {
         </div>
 
         {/* Quick suggestions */}
-        <div className="flex flex-wrap gap-2 justify-center max-w-2xl mb-8 relative z-10">
+        <div className="flex flex-wrap gap-2 justify-center max-w-3xl mb-8 relative z-10">
           {[
-            "GitHub user profile",
-            "Weather API",
-            "Random quotes",
-            "Cat facts"
+            { text: "JSONPlaceholder posts", query: "Get fake posts from JSONPlaceholder API" },
+            { text: "GitHub user info", query: "Get GitHub user octocat profile" },
+            { text: "Crypto prices", query: "Get Bitcoin price from CoinGecko API" },
+            { text: "Random dog images", query: "Get random dog images from Dog API" }
           ].map((suggestion, index) => (
             <button
               key={index}
-              onClick={() => handleSuggestionClick(`Get ${suggestion} data`)}
+              onClick={() => handleSuggestionClick(suggestion.query)}
               disabled={isLoading}
               className="px-3 py-1.5 text-xs rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50"
               style={{ 
@@ -424,7 +424,7 @@ export default function Home() {
                 border: `1px solid ${colors.border}`
               }}
             >
-              {suggestion}
+              {suggestion.text}
             </button>
           ))}
         </div>
@@ -452,7 +452,7 @@ export default function Home() {
       <div className="px-6 py-4 flex items-center justify-between">
         <button 
           onClick={handleLogoClick}
-          className="flex items-center space-x-4 transition-all duration-200 hover:scale-105 cursor-pointer"
+          className="transition-all duration-200 hover:scale-105 cursor-pointer"
         >
           <h1 
             className="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r"
@@ -463,16 +463,6 @@ export default function Home() {
           >
             curl
           </h1>
-          <span 
-            className="px-3 py-1 rounded-full text-xs uppercase font-medium"
-            style={{ 
-              backgroundColor: `${colors.primary}20`,
-              color: colors.primary,
-              border: `1px solid ${colors.primary}30`
-            }}
-          >
-            AI Powered
-          </span>
         </button>
         <ThemeToggle />
       </div>
