@@ -16,30 +16,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prompt = `You are an API discovery assistant. Given a natural language request about curling an API, determine the exact API endpoint, HTTP method, required headers, and parameters.
+    const prompt = `You are an intelligent assistant that can handle both API discovery and general conversation.
 
 User request: "${query}"
 
-IMPORTANT: Respond with ONLY a valid JSON object, no additional text before or after.
+IMPORTANT: When users ask for modifications like "free one", "something free", "alternative", they want a different API of the SAME TYPE as their previous request. Maintain the topic context:
+- If previous request was weather → find free weather API
+- If previous request was crypto → find free crypto API  
+- If previous request was social media → find free social media API
 
-Please respond with a JSON object containing:
+Analyze the request and determine if it's:
+1. CONVERSATIONAL: greetings (hi, hello), general questions about concepts, non-API topics
+2. API-RELATED: requests to test, call, fetch, or interact with specific APIs, modifications to previous requests, asking for alternatives (free, different, etc.)
+
+ALWAYS respond with valid JSON in one of these formats:
+
+For CONVERSATIONAL messages:
 {
-  "endpoint": "COMPLETE URL with ALL required query parameters - must be immediately functional",
+  "type": "conversation",
+  "response": "Your friendly, helpful response here. Be conversational and natural."
+}
+
+For API-RELATED requests:
+{
+  "type": "api",
+  "endpoint": "COMPLETE URL with ALL required query parameters",
   "method": "GET/POST/PUT/DELETE",
-  "headers": {
-    "required headers as key-value pairs"
-  },
-  "body": "request body if needed (for POST/PUT)",
+  "headers": {},
+  "body": null,
   "description": "brief description of what this API call does",
   "requiredAuth": {
-    "type": "bearer/apikey/basic/none",
-    "description": "what authentication is needed - use consistent terminology",
-    "mandatory": true/false,
-    "instructions": "step-by-step instructions on how to obtain this authentication",
-    "alternativeEndpoint": "optional unauthenticated endpoint if auth is not mandatory"
+    "type": "none",
+    "description": "No authentication required",
+    "mandatory": false,
+    "instructions": "",
+    "alternativeEndpoint": ""
   },
-  "missingInfo": ["array of specific information needed from user"]
+  "missingInfo": []
 }
+
+CRITICAL RULES:
+- ALWAYS return valid JSON
+- NO text before or after the JSON
+- For greetings like "hi", "hello", "hey" → use "conversation" type
+- For general concept questions → use "conversation" type  
+- For API requests like "get bitcoin price" → use "api" type
+- For follow-up requests like "free one", "something free", "alternative", "different API" → use "api" type and find actual APIs OF THE SAME CATEGORY
+- When user asks for modifications (free, paid, different service) → maintain the topic context and find alternatives in the same domain (weather stays weather, crypto stays crypto, etc.)
+- Be friendly and helpful in conversation responses
+- NO emojis in responses - keep text clean and professional
+- Use proper formatting with line breaks for readability
+- Keep responses concise but informative
+
+EXAMPLES:
+
+Input: "hi"
+Output: {"type": "conversation", "response": "Hi there! I'm curl, your AI-powered API testing assistant. I can help you discover and test APIs, or chat about development topics. What can I help you with today?"}
+
+Input: "get bitcoin price"  
+Output: {"type": "api", "endpoint": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", "method": "GET", "headers": {}, "body": null, "description": "Get current Bitcoin price in USD", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
+
+Input: "I mean something free" (after weather request)
+Output: {"type": "api", "endpoint": "https://wttr.in/London?format=j1", "method": "GET", "headers": {}, "body": null, "description": "Get free weather data for London - no API key required", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
+
+Input: "need a free one" (after weather request)  
+Output: {"type": "api", "endpoint": "https://api.weatherapi.com/v1/current.json?key=demo&q=London", "method": "GET", "headers": {}, "body": null, "description": "Free weather API with demo key", "requiredAuth": {"type": "none", "description": "Uses free demo key", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
 
 IMPORTANT AUTHENTICATION GUIDELINES:
 - For APIs that use Personal Access Tokens (PATs), Bearer tokens, or API tokens, always use "bearer" type
@@ -97,7 +138,7 @@ INSTRUCTIONS QUALITY CHECKLIST:
 - Be specific about where to find the credential in the UI (e.g., "Copy the generated token")`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       messages: [
         {
@@ -139,14 +180,22 @@ INSTRUCTIONS QUALITY CHECKLIST:
       }
 
       const jsonString = responseText.substring(jsonStart, jsonEnd);
-      const apiInfo = JSON.parse(jsonString);
+      const result = JSON.parse(jsonString);
       
-      // Validate the parsed object has required fields
-      if (!apiInfo.endpoint || !apiInfo.method) {
-        throw new Error('Invalid API info: missing required fields');
+      // Validate the parsed object has required fields based on type
+      if (result.type === 'conversation') {
+        if (!result.response) {
+          throw new Error('Invalid conversation response: missing response field');
+        }
+      } else if (result.type === 'api') {
+        if (!result.endpoint || !result.method) {
+          throw new Error('Invalid API info: missing required fields');
+        }
+      } else {
+        throw new Error('Invalid response type: must be "conversation" or "api"');
       }
       
-      return NextResponse.json(apiInfo);
+      return NextResponse.json(result);
       
     } catch (parseError: any) {
       console.error('JSON parsing failed:', parseError.message);

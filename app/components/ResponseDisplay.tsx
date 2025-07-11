@@ -13,6 +13,7 @@ interface CurlResponse {
   error?: string;
   details?: string;
   conversational?: boolean;
+  aiSummary?: string;
 }
 
 interface ResponseDisplayProps {
@@ -23,6 +24,7 @@ interface ResponseDisplayProps {
 export default function ResponseDisplay({ response, isLoading }: ResponseDisplayProps) {
   const { colors } = useTheme();
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+  const [headersCollapsed, setHeadersCollapsed] = useState(true); // Headers collapsed by default
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -99,6 +101,39 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
 
   return (
     <div className="space-y-6">
+      {/* AI Summary */}
+      {response.aiSummary && (
+        <div className="py-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium flex items-center" style={{ color: colors.text }}>
+              <i className="ri-sparkles-line mr-2" style={{ color: colors.primary }}></i>
+              AI Summary
+            </h3>
+            <button
+              onClick={() => copyToClipboard(response.aiSummary || '', 'summary')}
+              className="p-1.5 rounded text-xs transition-all duration-200 hover:scale-105"
+              style={{ 
+                backgroundColor: copiedStates.summary ? colors.success + '20' : colors.surfaceHover,
+                color: copiedStates.summary ? colors.success : colors.textSecondary
+              }}
+            >
+              <i className={copiedStates.summary ? "ri-check-line" : "ri-file-copy-line"}></i>
+            </button>
+          </div>
+          <div 
+            className="p-4 rounded-lg border-l-4"
+            style={{ 
+              backgroundColor: colors.primary + '10',
+              borderLeftColor: colors.primary
+            }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: colors.text }}>
+              {response.aiSummary}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Status and Metadata */}
       <div className="py-2">
         <div className="flex items-center space-x-4 mb-4">
@@ -135,8 +170,15 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
 
       {/* Curl Command */}
       <div className="py-2">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium" style={{ color: colors.text }}>
+        <div 
+          className="flex items-center justify-between px-4 py-3 rounded-t-lg border"
+          style={{ 
+            backgroundColor: colors.surface,
+            borderColor: colors.border
+          }}
+        >
+          <h3 className="text-sm font-semibold flex items-center" style={{ color: colors.text }}>
+            <i className="ri-terminal-line mr-2" style={{ color: colors.primary }}></i>
             Curl Command
           </h3>
           <button
@@ -151,8 +193,11 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
           </button>
         </div>
         <div 
-          className="p-4 rounded-lg"
-          style={{ backgroundColor: colors.surfaceHover }}
+          className="p-4 rounded-b-lg border border-t-0"
+          style={{ 
+            backgroundColor: colors.surfaceHover,
+            borderColor: colors.border
+          }}
         >
           <pre className="text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed" style={{ color: colors.text }}>
             {response.curlCommand || 'No curl command available'}
@@ -163,9 +208,17 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
       {/* Response Headers */}
       <div className="py-2">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium" style={{ color: colors.text }}>
-            Response Headers
-          </h3>
+          <button
+            onClick={() => setHeadersCollapsed(!headersCollapsed)}
+            className="flex items-center text-sm font-medium transition-all duration-200 hover:scale-105"
+            style={{ color: colors.text }}
+          >
+            <i 
+              className={`mr-2 transition-transform duration-200 ${headersCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}`}
+              style={{ color: colors.textSecondary }}
+            ></i>
+            Response Headers ({Object.keys(response.headers || {}).length})
+          </button>
           <button
             onClick={() => {
               const headersText = Object.entries(response.headers || {})
@@ -182,18 +235,20 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
             <i className={copiedStates.headers ? "ri-check-line" : "ri-file-copy-line"}></i>
           </button>
         </div>
-        <div className="space-y-2">
-          {Object.entries(response.headers || {}).map(([key, value]) => (
-            <div key={key} className="flex text-sm">
-              <span className="font-medium w-40 flex-shrink-0" style={{ color: colors.text }}>
-                {key}:
-              </span>
-              <span className="break-all leading-relaxed" style={{ color: colors.textSecondary }}>
-                {value}
-              </span>
-            </div>
-          ))}
-        </div>
+        {!headersCollapsed && (
+          <div className="space-y-2">
+            {Object.entries(response.headers || {}).map(([key, value]) => (
+              <div key={key} className="flex text-sm">
+                <span className="font-medium w-40 flex-shrink-0" style={{ color: colors.text }}>
+                  {key}:
+                </span>
+                <span className="break-all leading-relaxed" style={{ color: colors.textSecondary }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Response Body */}
@@ -222,7 +277,13 @@ export default function ResponseDisplay({ response, isLoading }: ResponseDisplay
           className="p-4 rounded-lg max-h-96 overflow-y-auto scrollbar-hide"
           style={{ backgroundColor: colors.surfaceHover }}
         >
-          <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed" style={{ color: colors.text }}>
+          <pre 
+            className="text-sm whitespace-pre-wrap leading-relaxed" 
+            style={{ 
+              color: colors.text,
+              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+            }}
+          >
             {typeof response.data === 'object' 
               ? JSON.stringify(response.data, null, 2)
               : (response.data || 'No data available')

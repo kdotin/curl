@@ -34,6 +34,7 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isCurling, setIsCurling] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [discoveredApi, setDiscoveredApi] = useState<ApiDiscoveryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -43,60 +44,28 @@ export default function Home() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageCounter = useRef<number>(0);
 
-  // Detect if a message is conversational rather than an API request
-  const isConversationalMessage = (message: string): boolean => {
-    const conversationalPatterns = [
-      /^hi$/i,
-      /^hello$/i,
-      /^hey$/i,
-      /^good morning$/i,
-      /^good afternoon$/i,
-      /^good evening$/i,
-      /^how are you\??$/i,
-      /^what.s up\??$/i,
-      /^thanks?$/i,
-      /^thank you$/i,
-      /^bye$/i,
-      /^goodbye$/i,
-      /^help$/i,
-      /^what can you do\??$/i,
-    ];
-    
-    return conversationalPatterns.some(pattern => pattern.test(message.trim()));
-  };
 
-  const handleConversationalMessage = (message: string): string => {
-    const lowerMessage = message.toLowerCase().trim();
-    
-    if (['hi', 'hello', 'hey'].includes(lowerMessage)) {
-      return "Hi there! I'm curl, your AI-powered API testing assistant. I can help you discover and test APIs. Try asking me something like 'Get GitHub user profile' or 'Test a weather API'.";
-    }
-    
-    if (['how are you', 'how are you?'].includes(lowerMessage)) {
-      return "I'm doing great, thanks for asking! I'm here to help you test APIs. What API would you like to explore today?";
-    }
-    
-    if (['help', 'what can you do', 'what can you do?'].includes(lowerMessage)) {
-      return "I can help you discover and test APIs! Just describe what you want to do in natural language. For example:\n\n• 'Get weather data for London'\n• 'Search for GitHub repositories'\n• 'Get random cat facts'\n• 'Fetch cryptocurrency prices'\n\nI'll find the right API endpoint and help you test it!";
-    }
-    
-    if (['thanks', 'thank you'].includes(lowerMessage)) {
-      return "You're welcome! Feel free to ask me about any API you'd like to test.";
-    }
-    
-    if (['bye', 'goodbye'].includes(lowerMessage)) {
-      return "Goodbye! Come back anytime you need to test APIs. Happy coding! 🚀";
-    }
-    
-    return "I'm here to help you test APIs! Try describing what kind of data you want to fetch or what API you'd like to explore.";
-  };
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [conversation, isDiscovering, isCurling]);
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    };
+
+    // Multiple scroll attempts for reliability
+    requestAnimationFrame(scrollToBottom);
+    const timeoutId1 = setTimeout(scrollToBottom, 100);
+    const timeoutId2 = setTimeout(scrollToBottom, 250);
+    const timeoutId3 = setTimeout(scrollToBottom, 500);
+    
+    return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+    };
+  }, [conversation, isDiscovering, isCurling, isSummarizing]);
 
   const addMessage = (type: ChatMessageData['type'], content: any) => {
     messageCounter.current += 1;
@@ -107,6 +76,21 @@ export default function Home() {
       timestamp: new Date()
     };
     setConversation(prev => [...prev, newMessage]);
+    
+    // Multiple scroll attempts with different timings to ensure reliability
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    };
+    
+    // Immediate scroll
+    requestAnimationFrame(scrollToBottom);
+    
+    // Delayed scrolls to handle dynamic content rendering
+    setTimeout(scrollToBottom, 50);
+    setTimeout(scrollToBottom, 150);
+    setTimeout(scrollToBottom, 300);
   };
 
   const handleSubmit = async (inputMessage: string) => {
@@ -120,22 +104,7 @@ export default function Home() {
     // Add user message to conversation
     addMessage('user', inputMessage);
 
-    // Check if this is a conversational message
-    if (isConversationalMessage(inputMessage)) {
-      const response = handleConversationalMessage(inputMessage);
-      addMessage('response', { 
-        success: true, 
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        data: response,
-        responseTime: 0,
-        curlCommand: '',
-        size: 0,
-        conversational: true 
-      });
-      return;
-    }
+    // Remove old conversational check - now handled by AI
 
     setError(null);
     setIsDiscovering(true);
@@ -149,27 +118,57 @@ export default function Home() {
         body: JSON.stringify({ query: inputMessage })
       });
 
-      const apiData = await discoverResponse.json();
+      const result = await discoverResponse.json();
       
       if (!discoverResponse.ok) {
-        throw new Error(apiData.error || 'Failed to discover API endpoint');
+        throw new Error(result.error || 'Failed to process request');
       }
 
-      setDiscoveredApi(apiData);
       setIsDiscovering(false);
 
-      // Add discovery message to conversation
-      addMessage('discovery', apiData);
-
-      // Step 2: Check if authentication is needed
-      if (apiData.requiredAuth.type !== 'none' || apiData.missingInfo.length > 0) {
-        // Add auth request message to conversation
-        addMessage('auth-request', { requiredAuth: apiData.requiredAuth, missingInfo: apiData.missingInfo });
+      // Check if this is a conversational response or API discovery
+      if (result.type === 'conversation') {
+        // Handle conversational response
+        addMessage('response', { 
+          success: true, 
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          data: result.response,
+          responseTime: 0,
+          curlCommand: '',
+          size: 0,
+          conversational: true 
+        });
         return;
       }
 
-      // Step 3: Execute curl directly if no auth needed
-      await executeCurl(apiData);
+      // Handle API discovery response
+      if (result.type === 'api') {
+        const apiData = result;
+        setDiscoveredApi(apiData);
+
+        // Add discovery message to conversation
+        addMessage('discovery', apiData);
+
+              // Step 2: Check if authentication is needed
+      if (apiData.requiredAuth.type !== 'none' || apiData.missingInfo.length > 0) {
+        // Add auth request message to conversation
+        addMessage('auth-request', { requiredAuth: apiData.requiredAuth, missingInfo: apiData.missingInfo });
+        
+        // Extra scroll for auth forms since they contain complex UI
+        setTimeout(() => {
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }, 600);
+        
+        return;
+      }
+
+        // Step 3: Execute curl directly if no auth needed
+        await executeCurl(apiData);
+      }
 
     } catch (error: any) {
       setError(error.message);
@@ -269,8 +268,34 @@ export default function Home() {
 
       const result = await curlResponse.json();
       
-      // Add response to conversation
-      addMessage('response', result);
+      // Generate AI summary of the response
+      setIsSummarizing(true);
+      let aiSummary = null;
+      try {
+        const summarizeResponse = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            responseData: result.data,
+            endpoint,
+            method: apiData.method,
+            status: result.status
+          })
+        });
+        
+        if (summarizeResponse.ok) {
+          const summaryData = await summarizeResponse.json();
+          aiSummary = summaryData.summary;
+        }
+      } catch (summaryError) {
+        console.error('Failed to generate summary:', summaryError);
+        // Continue without summary if it fails
+      } finally {
+        setIsSummarizing(false);
+      }
+      
+      // Add response to conversation with AI summary
+      addMessage('response', { ...result, aiSummary });
       
     } catch (error: any) {
       const errorMsg = error.message;
@@ -278,6 +303,7 @@ export default function Home() {
       addMessage('error', errorMsg);
     } finally {
       setIsCurling(false);
+      setIsSummarizing(false);
     }
   };
 
@@ -307,9 +333,10 @@ export default function Home() {
     setError(null);
     setIsDiscovering(false);
     setIsCurling(false);
+    setIsSummarizing(false);
   };
 
-  const isLoading = isDiscovering || isCurling;
+  const isLoading = isDiscovering || isCurling || isSummarizing;
 
   // Landing page view (before first message)
   if (!isChatMode) {
@@ -379,7 +406,7 @@ export default function Home() {
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe the API you want to test..."
+                placeholder="Describe the API you want to test or ask any question..."
                 className="flex-1 px-4 py-3 bg-transparent outline-none text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 style={{ 
                   color: colors.text
@@ -391,7 +418,7 @@ export default function Home() {
                 disabled={isLoading || !message.trim()}
                 className="m-1 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:scale-100"
                 style={{ 
-                  backgroundColor: colors.primary,
+                  background: `linear-gradient(135deg, ${colors.text}, ${colors.primary})`,
                   color: 'white'
                 }}
               >
@@ -469,6 +496,17 @@ export default function Home() {
             style={{ color: colors.textSecondary }}
           >
             Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly.
+            <br />
+            Made with passion by{' '}
+            <a 
+              href="https://x.com/kdotinx" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:no-underline transition-all duration-200"
+              style={{ color: colors.primary }}
+            >
+              Krishna Moorthy
+            </a>
           </p>
         </div>
       </div>
@@ -497,6 +535,7 @@ export default function Home() {
             curl
           </h1>
         </button>
+        
         <ThemeToggle />
       </div>
 
@@ -504,7 +543,11 @@ export default function Home() {
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto pb-32 scrollbar-hide"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        style={{ 
+          scrollbarWidth: 'none', 
+          msOverflowStyle: 'none',
+          scrollBehavior: 'smooth'
+        }}
       >
         <div className="max-w-3xl mx-auto px-6 py-4 space-y-6">
           {conversation.map((msg) => (
@@ -527,7 +570,7 @@ export default function Home() {
                   style={{ borderColor: colors.primary }}
                 ></div>
                 <span className="text-sm" style={{ color: colors.textSecondary }}>
-                  Discovering API...
+                  Thinking...
                 </span>
               </div>
             </div>
@@ -542,6 +585,20 @@ export default function Home() {
                 ></div>
                 <span className="text-sm" style={{ color: colors.textSecondary }}>
                   Executing request...
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {isSummarizing && (
+            <div className="flex justify-start">
+              <div className="flex items-center py-2">
+                <div 
+                  className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin mr-3"
+                  style={{ borderColor: colors.primary }}
+                ></div>
+                <span className="text-sm" style={{ color: colors.textSecondary }}>
+                  Generating AI summary...
                 </span>
               </div>
             </div>
@@ -566,6 +623,17 @@ export default function Home() {
             style={{ color: colors.textSecondary }}
           >
             Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly.
+            <br />
+            Made with passion by{' '}
+            <a 
+              href="https://x.com/kdotinx" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:no-underline transition-all duration-200"
+              style={{ color: colors.primary }}
+            >
+              Krishna Moorthy
+            </a>
           </p>
         </div>
       </div>

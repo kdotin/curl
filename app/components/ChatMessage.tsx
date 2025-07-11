@@ -14,6 +14,25 @@ export default function ChatMessage({ type, content, timestamp, onAuthSubmit, on
   const { colors } = useTheme();
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   
+  // Helper function to get method badge colors
+  const getMethodBadgeColors = (method: string) => {
+    const methodUpper = method.toUpperCase();
+    switch (methodUpper) {
+      case 'GET':
+        return { bg: '#10B981', text: 'white' }; // Green
+      case 'POST':
+        return { bg: '#3B82F6', text: 'white' }; // Blue
+      case 'PUT':
+        return { bg: '#F59E0B', text: 'white' }; // Amber
+      case 'PATCH':
+        return { bg: '#8B5CF6', text: 'white' }; // Purple
+      case 'DELETE':
+        return { bg: '#EF4444', text: 'white' }; // Red
+      default:
+        return { bg: colors.textSecondary, text: 'white' }; // Gray for unknown methods
+    }
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -34,7 +53,7 @@ export default function ChatMessage({ type, content, timestamp, onAuthSubmit, on
     return (
       <div className="flex justify-end mb-4">
         <div 
-          className="max-w-[80%] rounded-xl px-4 py-3"
+          className="max-w-[80%] px-4 py-3 rounded-2xl"
           style={{ 
             backgroundColor: colors.primary,
             color: 'white'
@@ -47,7 +66,7 @@ export default function ChatMessage({ type, content, timestamp, onAuthSubmit, on
   }
 
   if (type === 'discovery') {
-    const endpointText = `${content.method} ${content.endpoint}`;
+    const methodColors = getMethodBadgeColors(content.method);
     
     return (
       <div className="flex justify-start mb-4">
@@ -67,17 +86,30 @@ export default function ChatMessage({ type, content, timestamp, onAuthSubmit, on
             {content.description}
           </p>
           <div className="flex items-center justify-between">
-            <div 
-              className="flex-1 text-sm font-mono rounded-lg px-3 py-2 mr-2"
-              style={{ 
-                backgroundColor: colors.surfaceHover,
-                color: colors.text
-              }}
-            >
-              {endpointText}
+            <div className="flex items-center space-x-3 flex-1 mr-2">
+              {/* Method Badge */}
+              <span 
+                className="px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider"
+                style={{ 
+                  backgroundColor: methodColors.bg,
+                  color: methodColors.text
+                }}
+              >
+                {content.method}
+              </span>
+              {/* Endpoint */}
+              <div 
+                className="flex-1 text-sm font-mono rounded-lg px-3 py-2"
+                style={{ 
+                  backgroundColor: colors.surfaceHover,
+                  color: colors.text
+                }}
+              >
+                {content.endpoint}
+              </div>
             </div>
             <button
-              onClick={() => copyToClipboard(endpointText, 'endpoint')}
+              onClick={() => copyToClipboard(`${content.method} ${content.endpoint}`, 'endpoint')}
               className="p-1.5 rounded text-xs transition-all duration-200 hover:scale-105 flex-shrink-0"
               style={{ 
                 backgroundColor: copiedStates.endpoint ? colors.success + '20' : colors.surfaceHover,

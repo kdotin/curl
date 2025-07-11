@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "curl - AI-Powered API Testing Tool",
@@ -67,8 +68,7 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/out7eau.css" />
         <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet" />
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/favicon.ico" />
+
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
@@ -87,7 +87,7 @@ export default function RootLayout({
               "softwareVersion": "1.0",
               "author": {
                 "@type": "Organization",
-                "name": "curl"
+                "name": "Curl"
               },
               "offers": {
                 "@type": "Offer",
@@ -115,6 +115,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
