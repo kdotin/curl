@@ -115,7 +115,10 @@ export default function Home() {
       const discoverResponse = await fetch('/api/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: inputMessage })
+        body: JSON.stringify({ 
+          query: inputMessage,
+          conversationHistory: conversation
+        })
       });
 
       const result = await discoverResponse.json();
@@ -492,12 +495,10 @@ export default function Home() {
         {/* Footer Disclaimer */}
         <div className="absolute bottom-4 left-4 right-4 text-center z-10">
           <p 
-            className="text-xs opacity-50 max-w-2xl mx-auto"
+            className="text-xs opacity-50 max-w-2xl mx-auto leading-relaxed"
             style={{ color: colors.textSecondary }}
           >
-            Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly.
-            <br />
-            Made with passion by{' '}
+            Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly. Made with passion by{' '}
             <a 
               href="https://x.com/kdotinx" 
               target="_blank" 
@@ -619,12 +620,10 @@ export default function Home() {
         {/* Disclaimer */}
         <div className="text-center mt-3">
           <p 
-            className="text-xs opacity-50 max-w-2xl mx-auto"
+            className="text-xs opacity-50 max-w-2xl mx-auto leading-relaxed"
             style={{ color: colors.textSecondary }}
           >
-            Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly.
-            <br />
-            Made with passion by{' '}
+            Disclaimer: This tool makes requests to external APIs. Please ensure you have proper authorization and follow API terms of service. Use responsibly. Made with passion by{' '}
             <a 
               href="https://x.com/kdotinx" 
               target="_blank" 

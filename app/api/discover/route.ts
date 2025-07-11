@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json();
+    const { query, conversationHistory } = await request.json();
 
     if (!process.env.CLAUDE_API_KEY) {
       return NextResponse.json(
@@ -16,14 +16,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build conversation context from history
+    let conversationContext = "";
+    if (conversationHistory && conversationHistory.length > 0) {
+      conversationContext = "\n\nCONVERSATION HISTORY:\n";
+      conversationHistory.forEach((msg: any, index: number) => {
+        if (msg.type === 'user') {
+          conversationContext += `User: ${msg.content}\n`;
+        } else if (msg.type === 'discovery') {
+          conversationContext += `Assistant: Found API - ${msg.content.description} (${msg.content.method} ${msg.content.endpoint})\n`;
+        } else if (msg.type === 'response' && msg.content.conversational) {
+          conversationContext += `Assistant: ${msg.content.data}\n`;
+        }
+      });
+      conversationContext += "\n";
+    }
+
     const prompt = `You are an intelligent assistant that can handle both API discovery and general conversation.
+${conversationContext}
+Current user request: "${query}"
 
-User request: "${query}"
-
-IMPORTANT: When users ask for modifications like "free one", "something free", "alternative", they want a different API of the SAME TYPE as their previous request. Maintain the topic context:
-- If previous request was weather → find free weather API
-- If previous request was crypto → find free crypto API  
-- If previous request was social media → find free social media API
+IMPORTANT: When users ask for modifications like "free one", "something free", "alternative", they want a different API of the SAME TYPE as their previous request. Look at the conversation history to understand the context:
+- If previous request was about weather → find free weather API
+- If previous request was about crypto → find free crypto API  
+- If previous request was about social media → find free social media API
+- If previous request was about stocks/finance → find free finance API
 
 Analyze the request and determine if it's:
 1. CONVERSATIONAL: greetings (hi, hello), general questions about concepts, non-API topics
@@ -76,11 +93,11 @@ Output: {"type": "conversation", "response": "Hi there! I'm curl, your AI-powere
 Input: "get bitcoin price"  
 Output: {"type": "api", "endpoint": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", "method": "GET", "headers": {}, "body": null, "description": "Get current Bitcoin price in USD", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
 
-Input: "I mean something free" (after weather request)
-Output: {"type": "api", "endpoint": "https://wttr.in/London?format=j1", "method": "GET", "headers": {}, "body": null, "description": "Get free weather data for London - no API key required", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
+Input: "find me something free" (after NSE India stock API request)
+Output: {"type": "api", "endpoint": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", "method": "GET", "headers": {}, "body": null, "description": "Get free cryptocurrency prices - no API key required", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
 
 Input: "need a free one" (after weather request)  
-Output: {"type": "api", "endpoint": "https://api.weatherapi.com/v1/current.json?key=demo&q=London", "method": "GET", "headers": {}, "body": null, "description": "Free weather API with demo key", "requiredAuth": {"type": "none", "description": "Uses free demo key", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
+Output: {"type": "api", "endpoint": "https://wttr.in/London?format=j1", "method": "GET", "headers": {}, "body": null, "description": "Free weather data for London - no API key required", "requiredAuth": {"type": "none", "description": "No authentication required", "mandatory": false, "instructions": "", "alternativeEndpoint": ""}, "missingInfo": []}
 
 IMPORTANT AUTHENTICATION GUIDELINES:
 - For APIs that use Personal Access Tokens (PATs), Bearer tokens, or API tokens, always use "bearer" type
