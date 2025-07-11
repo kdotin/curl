@@ -405,27 +405,60 @@ export default function Home() {
           </form>
         </div>
 
-        {/* Quick suggestions */}
-        <div className="flex flex-wrap gap-2 justify-center max-w-3xl mb-8 relative z-10">
+        {/* Features */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mb-8 relative z-10">
           {[
-            { text: "JSONPlaceholder posts", query: "Get fake posts from JSONPlaceholder API" },
-            { text: "GitHub user info", query: "Get GitHub user octocat profile" },
-            { text: "Crypto prices", query: "Get Bitcoin price from CoinGecko API" },
-            { text: "Random dog images", query: "Get random dog images from Dog API" }
-          ].map((suggestion, index) => (
-            <button
+            { 
+              icon: "ri-robot-line", 
+              title: "AI-Powered Discovery", 
+              description: "Describe APIs in plain English" 
+            },
+            { 
+              icon: "ri-shield-check-line", 
+              title: "Smart Authentication", 
+              description: "Handles Bearer, API keys & Basic auth" 
+            },
+            { 
+              icon: "ri-chat-3-line", 
+              title: "Natural Language", 
+              description: "No complex configurations needed" 
+            },
+            { 
+              icon: "ri-flashlight-line", 
+              title: "Real-time Testing", 
+              description: "Instant API responses & debugging" 
+            }
+          ].map((feature, index) => (
+            <div
               key={index}
-              onClick={() => handleSuggestionClick(suggestion.query)}
-              disabled={isLoading}
-              className="px-3 py-1.5 text-xs rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50"
+              className="text-center p-4 rounded-xl transition-all duration-200 hover:scale-105"
               style={{ 
                 backgroundColor: colors.surface,
-                color: colors.textSecondary,
                 border: `1px solid ${colors.border}`
               }}
             >
-              {suggestion.text}
-            </button>
+              <div 
+                className="w-8 h-8 mx-auto mb-2 flex items-center justify-center rounded-lg"
+                style={{ backgroundColor: colors.primary + '15' }}
+              >
+                <i 
+                  className={`${feature.icon} text-lg`}
+                  style={{ color: colors.primary }}
+                ></i>
+              </div>
+              <h3 
+                className="text-xs font-semibold mb-1"
+                style={{ color: colors.text }}
+              >
+                {feature.title}
+              </h3>
+              <p 
+                className="text-xs leading-tight"
+                style={{ color: colors.textSecondary }}
+              >
+                {feature.description}
+              </p>
+            </div>
           ))}
         </div>
 

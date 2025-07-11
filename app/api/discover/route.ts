@@ -24,7 +24,7 @@ IMPORTANT: Respond with ONLY a valid JSON object, no additional text before or a
 
 Please respond with a JSON object containing:
 {
-  "endpoint": "full URL of the API endpoint",
+  "endpoint": "COMPLETE URL with ALL required query parameters - must be immediately functional",
   "method": "GET/POST/PUT/DELETE",
   "headers": {
     "required headers as key-value pairs"
@@ -72,13 +72,22 @@ URL PARSING EXAMPLES:
 - Notion URL "https://api.notion.com/v1/databases/abc-123" → missingInfo: ["Notion Database URL"]  
 - Individual parameters only if URL doesn't contain them → missingInfo: ["Base ID", "Table ID"]
 
+QUERY PARAMETERS HANDLING:
+- ALWAYS include required query parameters in the endpoint URL
+- For cryptocurrency APIs (Binance, CoinGecko): include symbol, interval, limit parameters
+- For weather APIs: include location, API key parameters
+- For search APIs: include query, limit parameters
+- Make endpoints immediately functional, not incomplete base URLs
+
 SPECIFIC API EXAMPLES:
-- "curl google ads for keyword policy check" → Google Ads API keyword policy endpoint
-- "get user profile from github" → GitHub API user profile endpoint  
+- "bitcoin candle data" → "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=1"
+- "get weather for London" → "https://api.openweathermap.org/data/2.5/weather?q=London&appid={API_KEY}"
+- "get user profile from github" → "https://api.github.com/users/octocat"
+- "get bitcoin price" → "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
 - "get airtable records" → should ask for "Airtable Base URL" in missingInfo
 - "post new tweet" → Twitter API tweet creation endpoint
 
-Focus on finding real, working API endpoints. If the URL contains placeholders or requires specific IDs/domains, prefer asking for full URLs when possible.
+CRITICAL: Always provide complete, working endpoint URLs with all required parameters. Do not return incomplete base URLs that will cause 400 errors.
 
 INSTRUCTIONS QUALITY CHECKLIST:
 - Always include direct clickable URLs to credential generation pages
