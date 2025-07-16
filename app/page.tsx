@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTheme } from "./components/ThemeProvider";
 import ThemeToggle from "./components/ThemeToggle";
 import ChatMessage from "./components/ChatMessage";
@@ -42,6 +42,7 @@ export default function Home() {
   const [isChatMode, setIsChatMode] = useState(false);
   const [conversation, setConversation] = useState<ChatMessageData[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageCounter = useRef<number>(0);
 
 
@@ -49,21 +50,28 @@ export default function Home() {
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     const scrollToBottom = () => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'end',
+          inline: 'nearest'
+        });
       }
     };
 
-    // Multiple scroll attempts for reliability
-    requestAnimationFrame(scrollToBottom);
-    const timeoutId1 = setTimeout(scrollToBottom, 100);
-    const timeoutId2 = setTimeout(scrollToBottom, 250);
-    const timeoutId3 = setTimeout(scrollToBottom, 500);
+    // Multiple attempts to ensure scroll happens after DOM updates
+    const timeoutId1 = setTimeout(scrollToBottom, 0);
+    const timeoutId2 = setTimeout(scrollToBottom, 100);
+    const timeoutId3 = setTimeout(scrollToBottom, 300);
+    const timeoutId4 = setTimeout(scrollToBottom, 600);
+    const timeoutId5 = setTimeout(scrollToBottom, 1000);
     
     return () => {
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
       clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
+      clearTimeout(timeoutId5);
     };
   }, [conversation, isDiscovering, isCurling, isSummarizing]);
 
@@ -77,20 +85,24 @@ export default function Home() {
     };
     setConversation(prev => [...prev, newMessage]);
     
-    // Multiple scroll attempts with different timings to ensure reliability
+    // Enhanced scroll logic using scrollIntoView
     const scrollToBottom = () => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'end',
+          inline: 'nearest'
+        });
       }
     };
     
-    // Immediate scroll
+    // Multiple attempts to ensure scroll happens after DOM updates
     requestAnimationFrame(scrollToBottom);
-    
-    // Delayed scrolls to handle dynamic content rendering
-    setTimeout(scrollToBottom, 50);
-    setTimeout(scrollToBottom, 150);
-    setTimeout(scrollToBottom, 300);
+    setTimeout(scrollToBottom, 0);
+    setTimeout(scrollToBottom, 100);
+    setTimeout(scrollToBottom, 250);
+    setTimeout(scrollToBottom, 500);
+    setTimeout(scrollToBottom, 1000);
   };
 
   const handleSubmit = async (inputMessage: string) => {
@@ -160,11 +172,20 @@ export default function Home() {
         addMessage('auth-request', { requiredAuth: apiData.requiredAuth, missingInfo: apiData.missingInfo });
         
         // Extra scroll for auth forms since they contain complex UI
-        setTimeout(() => {
-          if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        const scrollToAuthForm = () => {
+          if (lastMessageRef.current) {
+            lastMessageRef.current.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'end',
+              inline: 'nearest'
+            });
           }
-        }, 600);
+        };
+        
+        setTimeout(scrollToAuthForm, 200);
+        setTimeout(scrollToAuthForm, 500);
+        setTimeout(scrollToAuthForm, 800);
+        setTimeout(scrollToAuthForm, 1200);
         
         return;
       }
@@ -341,6 +362,36 @@ export default function Home() {
 
   const isLoading = isDiscovering || isCurling || isSummarizing;
 
+  // Additional scroll trigger for loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      const scrollToBottom = () => {
+        if (lastMessageRef.current) {
+          lastMessageRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          });
+        }
+      };
+      
+      // Ensure loading indicators are visible
+      setTimeout(scrollToBottom, 100);
+      setTimeout(scrollToBottom, 300);
+    }
+  }, [isLoading]);
+
+  // Immediate scroll trigger using useLayoutEffect for synchronous DOM updates
+  useLayoutEffect(() => {
+    if (lastMessageRef.current && conversation.length > 0) {
+      lastMessageRef.current.scrollIntoView({ 
+        behavior: 'auto', 
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  }, [conversation]);
+
   // Landing page view (before first message)
   if (!isChatMode) {
     return (
@@ -356,8 +407,28 @@ export default function Home() {
             backgroundSize: '24px 24px'
           }}
         ></div>
-        {/* Theme Toggle */}
-        <div className="absolute top-6 right-6 z-10">
+        {/* Theme Toggle and Links */}
+        <div className="absolute top-6 right-6 z-10 flex items-center space-x-4">
+          <a 
+            href="https://docs.trycurl.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-1"
+            style={{ color: colors.text }}
+          >
+            <span>Curly Docs</span>
+            <i className="ri-external-link-line text-xs"></i>
+          </a>
+          <a 
+            href="https://jobs.trycurl.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-1"
+            style={{ color: colors.text }}
+          >
+            <span>Schedule a Curl</span>
+            <i className="ri-external-link-line text-xs"></i>
+          </a>
           <ThemeToggle />
         </div>
 
@@ -547,7 +618,29 @@ export default function Home() {
           </h1>
         </button>
         
-        <ThemeToggle />
+        <div className="flex items-center space-x-4">
+          <a 
+            href="https://docs.trycurl.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-1"
+            style={{ color: colors.text }}
+          >
+            <span>Curly Docs</span>
+            <i className="ri-external-link-line text-xs"></i>
+          </a>
+          <a 
+            href="https://jobs.trycurl.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-1"
+            style={{ color: colors.text }}
+          >
+            <span>Schedule a Curl</span>
+            <i className="ri-external-link-line text-xs"></i>
+          </a>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Chat Messages Area */}
@@ -614,6 +707,9 @@ export default function Home() {
               </div>
             </div>
           )}
+          
+          {/* Scroll anchor - always present at bottom */}
+          <div ref={lastMessageRef} className="h-1" aria-hidden="true" />
         </div>
       </div>
 
